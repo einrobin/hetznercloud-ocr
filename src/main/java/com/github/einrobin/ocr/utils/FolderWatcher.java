@@ -29,7 +29,7 @@ public class FolderWatcher {
         Files.walkFileTree(this.folderPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                FolderWatcher.this.onNewFile.accept(file);
+                FolderWatcher.this.onNewFile(file);
                 return super.visitFile(file, attrs);
             }
         });
@@ -44,7 +44,7 @@ public class FolderWatcher {
                         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
                             Path filename = (Path) event.context();
                             Path fullPath = folderPath.resolve(filename);
-                            onNewFile.accept(fullPath);
+                            this.onNewFile(fullPath);
                         }
                     }
                     boolean valid = key.reset();
@@ -66,5 +66,39 @@ public class FolderWatcher {
 
         watcherThread.setDaemon(true);
         watcherThread.start();
+    }
+
+    private void onNewFile(Path file) {
+        if (this.waitUntilFileIsStable(file)) {
+            this.onNewFile.accept(file);
+        } else {
+            LOGGER.error("File {} did not finish uploading", file);
+        }
+    }
+
+    private boolean waitUntilFileIsStable(Path file) {
+        try {
+            long previousSize = -1;
+            int unchangedCount = 0;
+            while (unchangedCount < 3) {
+                long currentSize = Files.size(file);
+                if (currentSize == previousSize) {
+                    unchangedCount++;
+                } else {
+                    unchangedCount = 0;
+                    previousSize = currentSize;
+                }
+                Thread.sleep(500);
+            }
+
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.warn("Thread interrupted while waiting for file {}", file);
+        } catch (IOException e) {
+            LOGGER.warn("Error while waiting for file {}", file);
+        }
+
+        return false;
     }
 }
