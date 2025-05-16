@@ -1,0 +1,8 @@
+services:
+  ocr:
+    image: ghcr.io/einrobin/hetznercloud-ocr:latest
+    restart: unless-stopped
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./ocr-cluster.yml:/app/config.yml:ro

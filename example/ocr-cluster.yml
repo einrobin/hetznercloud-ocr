@@ -1,0 +1,20 @@
+ocrmypdf:
+  languages: # ISO 639-2 (3 letter) language codes
+    - deu
+    - eng
+  outputType: pdfa # pdfa | pdf | pdfa-1 | pdfa-2 | pdfa-3 | none
+  skipText: true
+cloud:
+  limits:
+    maxSimultaneousInstances: 3
+    maxSimultaneousTasksPerInstance: 5
+    idleTimeMinutes: 15
+    idleCount: 0 # TODO Not implemented yet
+  hetzner:
+    hcloudToken: "Your Hetzner API token"
+    instances:
+      image: debian-12
+      location: nbg1
+      serverType: cx31
+      labels: # At least one label is required
+        autoscaler: ocr
