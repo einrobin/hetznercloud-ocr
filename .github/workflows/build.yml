@@ -1,0 +1,24 @@
+name: HetznerCloud OCR
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Project'
+        uses: actions/checkout@main
+
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: 'Build Docker Image'
+        run: |
+          docker build -t ghcr.io/einrobin/hetznercloud-ocr:latest .
+          docker push ghcr.io/einrobin/hetznercloud-ocr:latest
