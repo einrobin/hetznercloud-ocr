@@ -22,9 +22,20 @@ public class FolderWatcher {
         this.onNewFile = onNewFile;
     }
 
+    private void registerAll(Path start, WatchService watchService) throws IOException {
+        Files.walkFileTree(start, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+                return FileVisitResult.CONTINUE;
+            }
+        });
+    }
+
     public void startWatching() throws IOException {
         WatchService watchService = FileSystems.getDefault().newWatchService();
-        this.folderPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+
+        this.registerAll(this.folderPath, watchService);
 
         Files.walkFileTree(this.folderPath, new SimpleFileVisitor<>() {
             @Override
@@ -40,13 +51,24 @@ public class FolderWatcher {
             try {
                 while (true) {
                     WatchKey key = watchService.take();
+                    Path dir = (Path) key.watchable();
+
                     for (WatchEvent<?> event : key.pollEvents()) {
                         WatchEvent.Kind<?> kind = event.kind();
 
                         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
                             Path filename = (Path) event.context();
-                            Path fullPath = folderPath.resolve(filename);
-                            this.onNewFile(fullPath);
+                            Path child = dir.resolve(filename);
+
+                            if (Files.isDirectory(child)) {
+                                try {
+                                    this.registerAll(child, watchService);
+                                } catch (IOException e) {
+                                    LOGGER.error("Failed to add watch on new sub folder {}", child);
+                                }
+                            } else {
+                                this.onNewFile(child);
+                            }
                         }
                     }
                     boolean valid = key.reset();
