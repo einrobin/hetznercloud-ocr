@@ -29,7 +29,9 @@ public class FolderWatcher {
         Files.walkFileTree(this.folderPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                FolderWatcher.this.onNewFile(file);
+                if (!Files.isDirectory(file)) {
+                    FolderWatcher.this.onNewFile(file);
+                }
                 return super.visitFile(file, attrs);
             }
         });
